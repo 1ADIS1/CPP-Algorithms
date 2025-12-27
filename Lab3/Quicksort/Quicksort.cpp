@@ -99,10 +99,12 @@ namespace qs {
             }
         }
 
-        if (use_insertion_sort) {
+        if (!use_insertion_sort) {
+            std::sort(first, last, comp);
+        }
+        else {
             // for small partitions use insertion sort
-            if (first < last) insertion_sort(first, last, comp);
-
+            insertion_sort(first, last, comp);
         }
     }
 

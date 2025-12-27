@@ -1,14 +1,5 @@
-// Benchmark.cpp
-// Build (example):
-//   g++ -O3 -std=c++17 Benchmark.cpp Quicksort.cpp -o benchmark
-// Run:
-//   ./benchmark
-// Output:
-//   Creates "benchmark_results.csv" in the current directory.
-//
-// NOTE: Quicksort.cpp must NOT define a main() when you compile this benchmark.
-// If it contains the tests + main(), remove or comment them out or move algorithm
-// definitions to a header.
+#pragma once
+
 
 #include <chrono>
 #include <fstream>
@@ -23,15 +14,12 @@
 
 #include "Quicksort.cpp"
 
-#pragma once
 
 
 int main(int argc, char** argv) {
-    // Sizes to test (powers of two)
     std::vector<std::size_t> sizes = {
-        128, 256, 512, 1024, 2048, 4096,
-        8192, 16384, 32768, 65536, 131072
-        // add more if you like (beware of insertion sort blow-up on large reversed arrays)
+        1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70,
+        75, 80, 85, 90, 95, 100
     };
 
     const int trials = 5; // runs per size, to average
@@ -59,7 +47,7 @@ int main(int argc, char** argv) {
             std::vector<int> base(n);
             for (std::size_t i = 0; i < n; ++i) base[i] = static_cast<int>(n - i);
 
-            // quicksort (without insertion-sort optimization)
+            // quicksort
             std::vector<int> qarr = base;
             auto t0 = std::chrono::steady_clock::now();
             qs::sort(qarr.data(), qarr.data() + qarr.size(), comp, /*use_insertion_sort=*/false);
@@ -70,7 +58,7 @@ int main(int argc, char** argv) {
             }
             qs_times.push_back(qs_ns);
 
-            // insertion sort on reversed array (worst-case for insertion sort)
+            // insertion sort
             std::vector<int> iarr = base;
             auto ti0 = std::chrono::steady_clock::now();
             qs::insertion_sort(iarr.data(), iarr.data() + iarr.size(), comp);
@@ -80,8 +68,6 @@ int main(int argc, char** argv) {
                 std::cerr << "Insertion sort result is NOT sorted for n=" << n << " (trial " << t << ")\n";
             }
             is_times.push_back(is_ns);
-
-            // small pause between trials is usually unnecessary; we keep successive runs
         }
 
         auto avg = [](const std::vector<long long>& v) -> long double {

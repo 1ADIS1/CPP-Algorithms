@@ -16,8 +16,8 @@ is_avg = df["is_avg_ns"].to_numpy().astype(np.float64)
 plt.figure(figsize=(9,6))
 
 # Plot average times (log-log)
-plt.plot(sizes, qs_avg / 1e6, marker='o', label='Quicksort (no insertion opt) [ms]')
-plt.plot(sizes, is_avg / 1e6, marker='s', label='Insertion sort (reversed input) [ms]')
+plt.plot(sizes, qs_avg, marker='o', label='Quicksort (no insertion opt) [ns]')
+plt.plot(sizes, is_avg, marker='s', label='Insertion sort (reversed input) [ns]')
 
 plt.xscale('log', base=2)
 plt.yscale('log')

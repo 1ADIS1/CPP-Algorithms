@@ -19,7 +19,7 @@ enable_testing()
 add_executable(
   DynamicArray
   DynamicArray.cpp
-)
+ "DynamicArrayTests.cpp")
 target_link_libraries(
   DynamicArray
   GTest::gtest_main

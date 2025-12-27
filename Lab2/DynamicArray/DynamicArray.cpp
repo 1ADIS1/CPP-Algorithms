@@ -3,7 +3,6 @@
 template<typename T>
 class Array final {
 public:
-    class ConstIterator;
     class Iterator {
     public:
         Iterator(Array<T>* array = nullptr, int pos = 0, bool rev = false)
@@ -51,14 +50,11 @@ public:
     ~Array() {
         clearElements();
         free(m_data);
-        m_data = nullptr;
-        m_capacity = 0;
     }
 
     // Copy constructor
     Array(const Array& other) : m_size(0), m_capacity(other.m_capacity), m_data(nullptr) {
         allocate(m_capacity);
-        // copy-construct elements
         for (int i = 0; i < other.m_size; ++i) {
             new (&m_data[i]) T(other.m_data[i]);
             ++m_size;
@@ -72,10 +68,10 @@ public:
         other.m_capacity = 0;
     }
 
-    // Copy-and-swap assignment (single operator=)
     Array& operator=(Array other) {
-        // 'other' is either copy-constructed or move-constructed depending on context
-        swap(other);
+        std::swap(m_data, other.m_data);
+        std::swap(m_size, other.m_size);
+        std::swap(m_capacity, other.m_capacity);
         return *this;
     }
 
@@ -84,13 +80,12 @@ public:
         return insert(m_size, value);
     }
 
-    // Insert at index
     int insert(int index, const T& value) {
-        // no bounds checks as specified
         if (m_size + 1 > m_capacity) {
             grow();
         }
-        // shift elements to the right starting from last to index
+
+        // shift to right starting from last to index
         if (m_size > 0 && index < m_size) {
             for (int i = m_size - 1; i >= index; --i) {
                 // move or copy element from i to i+1
@@ -100,14 +95,11 @@ public:
                 else {
                     new (&m_data[i + 1]) T(m_data[i]);
                 }
-                // destroy old instance
                 m_data[i].~T();
             }
-            // construct inserted value at index
             new (&m_data[index]) T(value);
         }
         else {
-            // inserting at end
             new (&m_data[m_size]) T(value);
         }
         ++m_size;
@@ -115,8 +107,8 @@ public:
     }
 
     void remove(int index) {
-        // destroy element at index
         m_data[index].~T();
+
         // shift left
         for (int i = index; i < m_size - 1; ++i) {
             if constexpr (std::is_move_constructible<T>::value) {
@@ -155,8 +147,7 @@ private:
     T* m_data;
 
     void allocate(int capacity) {
-        // allocate raw memory
-        void* block = std::malloc(sizeof(T) * static_cast<size_t>(capacity));
+        void* block = std::malloc(sizeof(T) * capacity);
         if (!block) throw std::bad_alloc();
         m_data = reinterpret_cast<T*>(block);
         m_capacity = capacity;
@@ -165,9 +156,11 @@ private:
     void grow() {
         int newCapacity = std::max(m_capacity + 1, static_cast<int>(std::ceil(m_capacity * 1.6)));
         if (newCapacity <= m_capacity) newCapacity = m_capacity + 1;
+
         // allocate new block
-        void* block = std::malloc(sizeof(T) * static_cast<size_t>(newCapacity));
+        void* block = std::malloc(sizeof(T) * newCapacity);
         if (!block) throw std::bad_alloc();
+        
         T* newData = reinterpret_cast<T*>(block);
         // move or copy elements into new block
         for (int i = 0; i < m_size; ++i) {
@@ -177,9 +170,9 @@ private:
             else {
                 new (&newData[i]) T(m_data[i]);
             }
-            // destroy old
             m_data[i].~T();
         }
+
         // free old block
         std::free(m_data);
         m_data = newData;
@@ -193,59 +186,3 @@ private:
         m_size = 0;
     }
 };
-
-// ----------------- Google Test cases -----------------
-
-TEST(ArrayBasic, InsertAndIndex) {
-    Array<int> a;
-    for (int i = 0; i < 10; ++i) a.insert(i + 1);
-    ASSERT_EQ(a.size(), 10);
-    for (int i = 0; i < a.size(); ++i) a[i] *= 2;
-    for (int i = 0; i < 10; ++i) EXPECT_EQ(a[i], (i + 1) * 2);
-}
-
-TEST(ArrayIterator, ForwardAndReverse) {
-    Array<int> a;
-    for (int i = 0; i < 5; ++i) a.insert(i + 1);
-    int expected = 1;
-    for (auto it = a.iterator(); it.hasNext(); it.next()) {
-        EXPECT_EQ(it.get(), expected);
-        ++expected;
-    }
-    expected = 5;
-    for (auto it = a.reverseIterator(); it.hasNext(); it.next()) {
-        EXPECT_EQ(it.get(), expected);
-        --expected;
-    }
-}
-
-TEST(ArrayInsertRemove, AtIndex) {
-    Array<int> a;
-    a.insert(0, 1);
-    a.insert(1, 3);
-    a.insert(1, 2); // 1,2,3
-    ASSERT_EQ(a.size(), 3);
-    EXPECT_EQ(a[0], 1);
-    EXPECT_EQ(a[1], 2);
-    EXPECT_EQ(a[2], 3);
-    a.remove(1); // 1,3
-    ASSERT_EQ(a.size(), 2);
-    EXPECT_EQ(a[0], 1);
-    EXPECT_EQ(a[1], 3);
-}
-
-TEST(ArrayCopyMove, CopyAndMove) {
-    Array<std::string> a;
-    a.insert(std::string("one"));
-    a.insert(std::string("two"));
-    Array<std::string> b = a; // copy
-    EXPECT_EQ(b.size(), a.size());
-    EXPECT_EQ(b[0], "one");
-    Array<std::string> c = std::move(a); // move
-    EXPECT_EQ(c.size(), 2);
-}
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
